@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sales</h2>
+<p><a href="{% url 'dealership:sale_add' %}">Add sale</a> | <a href="{% url 'dealership:reports' %}">Reports</a></p>
+
+<ul>
+  {% for s in object_list %}
+    <li>
+      {{ s.sale_date }} | {{ s.employee.full_name }} | {{ s.car }} |
+      actual: {{ s.actual_sale_price }} | profit: {{ s.profit }}
+      | <a href="{% url 'dealership:sale_edit' s.id %}">Edit</a>
+      | <a href="{% url 'dealership:sale_delete' s.id %}">Delete</a>
+    </li>
+  {% empty %}
+    <li>No sales</li>
+  {% endfor %}
+</ul>
+{% endblock %}

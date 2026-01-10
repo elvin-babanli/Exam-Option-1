@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Reports</h2>
+
+<form method="get">
+  <p>
+    Exact date: <input type="date" name="date" value="{{ request.GET.date }}">
+  </p>
+  <p>
+    Period: start <input type="date" name="start" value="{{ request.GET.start }}">
+    end <input type="date" name="end" value="{{ request.GET.end }}">
+  </p>
+  <p>
+    Employee:
+    <select name="employee_id">
+      <option value="">-- all --</option>
+      {% for e in employees %}
+        <option value="{{ e.id }}" {% if request.GET.employee_id == e.id|stringformat:"s" %}selected{% endif %}>
+          {{ e.full_name }}
+        </option>
+      {% endfor %}
+    </select>
+  </p>
+  <button type="submit">Filter</button>
+  <button type="submit" name="export" value="csv">Download CSV</button>
+</form>
+
+<hr>
+
+<p><b>Total profit:</b> {{ total_profit }}</p>
+<p><b>Best-selling car:</b> {{ best_car|default:"-" }}</p>
+<p><b>Top salesperson:</b>
+  {% if top_emp %} {{ top_emp.0 }} ({{ top_emp.1 }} sales) {% else %}-{% endif %}
+</p>
+
+<hr>
+<h3>Sales list</h3>
+<ul>
+  {% for s in sales %}
+    <li>{{ s.sale_date }} | {{ s.employee.full_name }} | {{ s.car }} | profit: {{ s.profit }}</li>
+  {% empty %}
+    <li>No sales for selected filters</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

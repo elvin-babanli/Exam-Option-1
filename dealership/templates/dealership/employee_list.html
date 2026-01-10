@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Employees</h2>
+<p><a href="{% url 'dealership:employee_add' %}">Add employee</a></p>
+
+<ul>
+  {% for e in object_list %}
+    <li>
+      {{ e.full_name }} - {{ e.position }} - {{ e.email }}
+      | <a href="{% url 'dealership:employee_edit' e.id %}">Edit</a>
+      | <a href="{% url 'dealership:employee_delete' e.id %}">Delete</a>
+    </li>
+  {% empty %}
+    <li>No employees</li>
+  {% endfor %}
+</ul>
+{% endblock %}
