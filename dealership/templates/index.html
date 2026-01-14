@@ -1,17 +1,622 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Car Dealership Accounting System</h1>
+<style>
+  :root{
+    --bg: #f6f8fc;
+    --surface: rgba(255,255,255,.78);
+    --surface-2: rgba(255,255,255,.92);
+    --text: #0f172a;
+    --muted: #475569;
+    --border: rgba(15,23,42,.10);
 
-<p>
-    This application is used to manage employees, cars, sales and calculate profit.
-</p>
+    --primary: #2f6fed;
+    --primary-2: #1d4ed8;
+    --accent: #7c3aed;
+    --success: #10b981;
+    --shadow: 0 20px 60px rgba(2,6,23,.12);
+    --shadow-soft: 0 10px 35px rgba(2,6,23,.10);
+    --radius-xl: 26px;
+    --radius-lg: 18px;
 
-<ul>
-    <li>Manage employees</li>
-    <li>Manage cars</li>
-    <li>Register sales</li>
-    <li>Generate reports</li>
-</ul>
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
 
+  /* Layout wrapper */
+  .cdx-wrap{
+    position: relative;
+    min-height: calc(100vh - 140px);
+    padding: clamp(18px, 3vw, 34px);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: radial-gradient(1200px 600px at 10% 0%, rgba(47,111,237,.18), transparent 60%),
+                radial-gradient(900px 520px at 95% 15%, rgba(124,58,237,.16), transparent 55%),
+                radial-gradient(1000px 560px at 50% 100%, rgba(16,185,129,.12), transparent 60%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 55%, #f3f6ff 100%);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(255,255,255,.6);
+  }
+
+  /* Animated background blobs */
+  .cdx-blobs{
+    position:absolute;
+    inset:-40px;
+    pointer-events:none;
+    filter: blur(28px);
+    opacity: .85;
+  }
+  .cdx-blob{
+    position:absolute;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(47,111,237,.85), rgba(47,111,237,.0) 65%);
+    transform: translate3d(0,0,0);
+    animation: blobFloat 14s var(--ease) infinite;
+    mix-blend-mode: multiply;
+  }
+  .cdx-blob.b2{
+    width: 520px; height: 520px;
+    background: radial-gradient(circle at 30% 30%, rgba(124,58,237,.75), rgba(124,58,237,.0) 65%);
+    animation-duration: 18s;
+    animation-delay: -4s;
+  }
+  .cdx-blob.b3{
+    width: 460px; height: 460px;
+    background: radial-gradient(circle at 30% 30%, rgba(16,185,129,.55), rgba(16,185,129,.0) 65%);
+    animation-duration: 16s;
+    animation-delay: -7s;
+  }
+
+  @keyframes blobFloat{
+    0%   { transform: translate(4%, 2%) scale(1); }
+    25%  { transform: translate(18%, 10%) scale(1.05); }
+    50%  { transform: translate(12%, 24%) scale(.98); }
+    75%  { transform: translate(-4%, 16%) scale(1.03); }
+    100% { transform: translate(4%, 2%) scale(1); }
+  }
+
+  /* Grid */
+  .cdx-grid{
+    position: relative;
+    display:grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: clamp(14px, 2.3vw, 22px);
+    align-items: stretch;
+  }
+
+  @media (max-width: 980px){
+    .cdx-grid{ grid-template-columns: 1fr; }
+  }
+
+  /* Hero */
+  .cdx-hero{
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,.65);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+    padding: clamp(18px, 3vw, 28px);
+    backdrop-filter: blur(10px);
+    transform: translateY(8px);
+    opacity: 0;
+    transition: transform .9s var(--ease), opacity .9s var(--ease);
+  }
+  .cdx-hero.is-in{
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .cdx-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.85);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 10px 22px rgba(2,6,23,.06);
+  }
+  .cdx-dot{
+    width: 10px; height: 10px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0) 60%),
+                linear-gradient(180deg, var(--primary), var(--accent));
+    box-shadow: 0 0 0 6px rgba(47,111,237,.10);
+    animation: pulse 2.2s var(--ease) infinite;
+  }
+  @keyframes pulse{
+    0%, 100%{ transform: scale(1); box-shadow: 0 0 0 6px rgba(47,111,237,.10); }
+    50%{ transform: scale(1.05); box-shadow: 0 0 0 10px rgba(47,111,237,.08); }
+  }
+
+  .cdx-title{
+    margin: 14px 0 8px;
+    font-size: clamp(28px, 3.2vw, 42px);
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    color: var(--text);
+  }
+
+  .cdx-sub{
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 15.5px;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
+
+  /* Action buttons */
+  .cdx-actions{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .cdx-btn{
+    position: relative;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.92);
+    color: var(--text);
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 14px 30px rgba(2,6,23,.08);
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+    user-select: none;
+  }
+  .cdx-btn:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 22px 44px rgba(2,6,23,.12);
+    border-color: rgba(47,111,237,.25);
+  }
+  .cdx-btn:active{
+    transform: translateY(0px) scale(.99);
+  }
+
+  .cdx-btn.primary{
+    background: linear-gradient(180deg, rgba(47,111,237,1), rgba(29,78,216,1));
+    border-color: rgba(255,255,255,.35);
+    color: #fff;
+  }
+  .cdx-btn.primary:hover{
+    border-color: rgba(255,255,255,.55);
+  }
+
+  .cdx-ic{
+    width: 18px; height: 18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* Side panel */
+  .cdx-panel{
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,.65);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+    padding: clamp(16px, 2.6vw, 22px);
+    backdrop-filter: blur(10px);
+    transform: translateY(10px);
+    opacity: 0;
+    transition: transform 1s var(--ease), opacity 1s var(--ease);
+    transition-delay: .08s;
+  }
+  .cdx-panel.is-in{
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .cdx-panel h3{
+    margin: 2px 0 12px;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .cdx-kpis{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .cdx-kpi{
+    border-radius: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.88);
+    box-shadow: 0 10px 20px rgba(2,6,23,.06);
+    transform: translateY(6px);
+    opacity: 0;
+    transition: transform .7s var(--ease), opacity .7s var(--ease);
+  }
+  .cdx-panel.is-in .cdx-kpi{
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .cdx-panel.is-in .cdx-kpi:nth-child(2){ transition-delay: .08s; }
+  .cdx-panel.is-in .cdx-kpi:nth-child(3){ transition-delay: .16s; }
+  .cdx-panel.is-in .cdx-kpi:nth-child(4){ transition-delay: .24s; }
+
+  .cdx-kpi .label{
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .cdx-kpi .value{
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .cdx-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(47,111,237,.10);
+    border: 1px solid rgba(47,111,237,.18);
+    color: #1e3a8a;
+    font-weight: 800;
+    font-size: 12.5px;
+  }
+
+  /* Feature list (left) */
+  .cdx-features{
+    margin-top: 18px;
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 720px){
+    .cdx-features{ grid-template-columns: 1fr; }
+  }
+  .cdx-card{
+    position: relative;
+    border-radius: var(--radius-lg);
+    padding: 14px 14px 14px 14px;
+    background: rgba(255,255,255,.88);
+    border: 1px solid var(--border);
+    box-shadow: 0 14px 26px rgba(2,6,23,.07);
+    overflow: hidden;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: transform .8s var(--ease), opacity .8s var(--ease), box-shadow .25s var(--ease);
+  }
+  .cdx-hero.is-in .cdx-card{
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .cdx-hero.is-in .cdx-card:nth-child(2){ transition-delay: .08s; }
+  .cdx-hero.is-in .cdx-card:nth-child(3){ transition-delay: .16s; }
+  .cdx-hero.is-in .cdx-card:nth-child(4){ transition-delay: .24s; }
+
+  .cdx-card:hover{
+    box-shadow: 0 22px 46px rgba(2,6,23,.12);
+  }
+  .cdx-card::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background: radial-gradient(260px 120px at 0% 0%, rgba(47,111,237,.20), transparent 60%),
+                radial-gradient(260px 120px at 100% 0%, rgba(124,58,237,.18), transparent 60%);
+    opacity: 0;
+    transition: opacity .35s var(--ease);
+    pointer-events:none;
+  }
+  .cdx-card:hover::before{ opacity: 1; }
+
+  .cdx-card .top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .cdx-card .name{
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .cdx-card .desc{
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .cdx-mini{
+    width: 40px; height: 40px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(47,111,237,.10);
+    border: 1px solid rgba(47,111,237,.18);
+    box-shadow: 0 12px 22px rgba(2,6,23,.06);
+    transform: translateZ(0);
+  }
+
+  /* Footer hint */
+  .cdx-hint{
+    margin-top: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .cdx-hint strong{ color: var(--text); }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .cdx-blob, .cdx-dot{ animation: none !important; }
+    .cdx-hero, .cdx-panel, .cdx-card, .cdx-kpi{ transition: none !important; }
+  }
+</style>
+
+<div class="cdx-wrap" id="cdxHome">
+  <div class="cdx-blobs" aria-hidden="true">
+    <div class="cdx-blob" style="left:-120px; top:-110px;"></div>
+    <div class="cdx-blob b2" style="right:-180px; top:-160px;"></div>
+    <div class="cdx-blob b3" style="left:35%; bottom:-220px;"></div>
+  </div>
+
+  <div class="cdx-grid">
+    <!-- LEFT: HERO -->
+    <section class="cdx-hero" data-reveal>
+      <div class="cdx-badge">
+        <span class="cdx-dot" aria-hidden="true"></span>
+        Dealership • Accounting • Reports
+      </div>
+
+      <h1 class="cdx-title">Car Dealership Accounting System</h1>
+
+      <p class="cdx-sub">
+        This application helps you manage <strong>employees</strong>, <strong>cars</strong> and <strong>sales</strong>
+        — then turns everything into clear <strong>profit-focused</strong> insights.
+      </p>
+
+      <div class="cdx-actions">
+        <!-- NOTE: URL-lar base.html-də olan routing-ə uyğun deyilsə, sadəcə href-ləri dəyiş -->
+        <a class="cdx-btn primary" href="/dealership/cars/">
+          <span class="cdx-ic" aria-hidden="true">
+            <!-- car icon -->
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 13l2-5a3 3 0 0 1 2.8-2h8.4A3 3 0 0 1 21 8l2 5"/>
+              <path d="M5 13h14v6a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-1H10v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6Z"/>
+              <path d="M7 10h10"/>
+            </svg>
+          </span>
+          Manage Cars
+        </a>
+
+        <a class="cdx-btn" href="/dealership/employees/">
+          <span class="cdx-ic" aria-hidden="true">
+            <!-- user icon -->
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21a8 8 0 0 0-16 0"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          Manage Employees
+        </a>
+
+        <a class="cdx-btn" href="/dealership/sales/">
+          <span class="cdx-ic" aria-hidden="true">
+            <!-- tag icon -->
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.6 13.4 12 22 2 12 10.6 3.4a2 2 0 0 1 1.4-.6H20a2 2 0 0 1 2 2v8a2 2 0 0 1-.6 1.6Z"/>
+              <circle cx="17" cy="7" r="1.5"/>
+            </svg>
+          </span>
+          Register Sales
+        </a>
+
+        <a class="cdx-btn" href="/dealership/reports/">
+          <span class="cdx-ic" aria-hidden="true">
+            <!-- chart icon -->
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="M7 14v4"/>
+              <path d="M11 10v8"/>
+              <path d="M15 7v11"/>
+              <path d="M19 12v6"/>
+            </svg>
+          </span>
+          Generate Reports
+        </a>
+      </div>
+
+      <div class="cdx-features" aria-label="Key features">
+        <div class="cdx-card">
+          <div class="top">
+            <div>
+              <div class="name">Employees</div>
+              <p class="desc">Add, edit and maintain staff records in one place.</p>
+            </div>
+            <div class="cdx-mini" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="cdx-card">
+          <div class="top">
+            <div>
+              <div class="name">Cars</div>
+              <p class="desc">Track inventory, pricing and availability with ease.</p>
+            </div>
+            <div class="cdx-mini" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 13l2-5a3 3 0 0 1 2.8-2h8.4A3 3 0 0 1 21 8l2 5"/>
+                <path d="M5 13h14v6a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-1H10v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6Z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="cdx-card">
+          <div class="top">
+            <div>
+              <div class="name">Sales</div>
+              <p class="desc">Register sales transactions with consistent records.</p>
+            </div>
+            <div class="cdx-mini" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.6 13.4 12 22 2 12 10.6 3.4a2 2 0 0 1 1.4-.6H20a2 2 0 0 1 2 2v8a2 2 0 0 1-.6 1.6Z"/>
+                <circle cx="17" cy="7" r="1.5"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="cdx-card">
+          <div class="top">
+            <div>
+              <div class="name">Reports</div>
+              <p class="desc">See performance and profit trends in a clean overview.</p>
+            </div>
+            <div class="cdx-mini" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"/>
+                <path d="M7 14v4"/>
+                <path d="M11 10v8"/>
+                <path d="M15 7v11"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cdx-hint">
+        <span>Tip: Use the quick actions to navigate faster.</span>
+        <span class="cdx-chip">
+          <span aria-hidden="true">⚡</span> Fast workflow
+        </span>
+      </div>
+    </section>
+
+    <!-- RIGHT: PANEL -->
+    <aside class="cdx-panel" data-reveal>
+      <h3>System Overview</h3>
+
+      <div class="cdx-kpis">
+        <div class="cdx-kpi">
+          <div class="label">
+            <span aria-hidden="true">📦</span> Inventory
+          </div>
+          <div class="value" id="kpiInventory">—</div>
+        </div>
+
+        <div class="cdx-kpi">
+          <div class="label">
+            <span aria-hidden="true">👥</span> Employees
+          </div>
+          <div class="value" id="kpiEmployees">—</div>
+        </div>
+
+        <div class="cdx-kpi">
+          <div class="label">
+            <span aria-hidden="true">🧾</span> Sales
+          </div>
+          <div class="value" id="kpiSales">—</div>
+        </div>
+
+        <div class="cdx-kpi">
+          <div class="label">
+            <span aria-hidden="true">💹</span> Profit
+          </div>
+          <div class="value" id="kpiProfit">—</div>
+        </div>
+      </div>
+
+      <div class="cdx-hint" style="margin-top: 6px;">
+        <span><strong>Status:</strong> Ready</span>
+        <span class="cdx-chip" style="background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.18); color: #065f46;">
+          <span aria-hidden="true">●</span> Live UI
+        </span>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  (function(){
+    // Reveal animations on scroll
+    const targets = document.querySelectorAll('[data-reveal]');
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.18 });
+
+    targets.forEach(t=>io.observe(t));
+
+    // Small, professional KPI demo animation (safe fallback, no backend dependency)
+    // Sonra istəsən bunları Django context ilə real data-ya bağlayarıq.
+    const kpis = {
+      inventory: document.getElementById('kpiInventory'),
+      employees: document.getElementById('kpiEmployees'),
+      sales: document.getElementById('kpiSales'),
+      profit: document.getElementById('kpiProfit'),
+    };
+
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function animateNumber(el, to, suffix=""){
+      if(!el) return;
+      if(prefersReduced){
+        el.textContent = String(to) + suffix;
+        return;
+      }
+      const from = 0;
+      const duration = 900;
+      const start = performance.now();
+
+      function tick(now){
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const val = Math.round(from + (to - from) * eased);
+        el.textContent = val.toLocaleString() + suffix;
+        if(t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // Demo values (placeholder)
+    // Əgər real data qoymaq istəsən: Django ilə data-context göndər, burada oxuyaq.
+    animateNumber(kpis.inventory, 128);
+    animateNumber(kpis.employees, 14);
+    animateNumber(kpis.sales, 56);
+    animateNumber(kpis.profit, 24, "k"); // 24k
+  })();
+</script>
 {% endblock %}
