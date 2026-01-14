@@ -1,18 +1,574 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Cars</h2>
-<p><a href="{% url 'dealership:car_add' %}">Add car</a></p>
 
-<ul>
-  {% for c in object_list %}
-    <li>
-      {{ c.manufacturer }} {{ c.model }} ({{ c.year }})
-      | cost: {{ c.cost_price }} | potential: {{ c.potential_sale_price }}
-      | <a href="{% url 'dealership:car_edit' c.id %}">Edit</a>
-      | <a href="{% url 'dealership:car_delete' c.id %}">Delete</a>
-    </li>
-  {% empty %}
-    <li>No cars</li>
-  {% endfor %}
-</ul>
+<style>
+  :root{
+    --bg:#f5f7fb;
+    --surface:rgba(255,255,255,.88);
+    --text:#0f172a;
+    --muted:#475569;
+    --border:rgba(15,23,42,.10);
+    --primary:#2f6fed;
+    --primary-2:#1d4ed8;
+    --danger:#ef4444;
+    --shadow-soft:0 12px 30px rgba(2,6,23,.08);
+    --shadow:0 18px 50px rgba(2,6,23,.12);
+    --radius-xl:26px;
+    --radius-lg:18px;
+    --radius-md:14px;
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+
+  .cars-wrap{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--radius-xl);
+  }
+
+  /* header */
+  .cars-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 14px;
+  }
+
+  .cars-title{
+    margin:0;
+    font-size: 22px;
+    letter-spacing:-.02em;
+    color:var(--text);
+  }
+  .cars-sub{
+    margin:6px 0 0;
+    color:var(--muted);
+    font-weight:600;
+    font-size: 13.5px;
+    line-height:1.5;
+  }
+
+  .cars-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap: wrap;
+    justify-content:flex-end;
+    align-items:center;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 11px 14px;
+    border-radius: 14px;
+    text-decoration:none;
+    font-weight:800;
+    border:1px solid var(--border);
+    background: rgba(255,255,255,.92);
+    color: var(--text);
+    box-shadow: 0 12px 26px rgba(2,6,23,.08);
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+    user-select:none;
+  }
+  .btn:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px rgba(2,6,23,.12);
+    border-color: rgba(47,111,237,.25);
+  }
+  .btn:active{ transform: translateY(0) scale(.99); }
+
+  .btn.primary{
+    background: linear-gradient(180deg, var(--primary), var(--primary-2));
+    border-color: rgba(255,255,255,.35);
+    color:#fff;
+  }
+
+  .btn .ic{
+    width:18px;height:18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* toolbar */
+  .toolbar{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.75);
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 26px rgba(2,6,23,.06);
+    margin-bottom: 14px;
+  }
+
+  .search{
+    flex: 1;
+    min-width: 240px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--border);
+  }
+  .search input{
+    width:100%;
+    border:0;
+    outline:none;
+    font-size: 14px;
+    font-weight:700;
+    color: var(--text);
+    background: transparent;
+  }
+  .search .hint{
+    color: var(--muted);
+    font-weight:700;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity:.85;
+  }
+
+  .meta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color: var(--muted);
+    font-weight:800;
+    font-size: 12.5px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--border);
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(47,111,237,.10);
+    border: 1px solid rgba(47,111,237,.18);
+    color: #1e3a8a;
+    font-weight: 900;
+    font-size: 12px;
+  }
+
+  /* list container */
+  .list{
+    display:grid;
+    gap: 12px;
+  }
+
+  .row{
+    position: relative;
+    display:grid;
+    grid-template-columns: 1.3fr .9fr .9fr auto;
+    gap: 12px;
+    align-items:center;
+    padding: 14px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.88);
+    border: 1px solid var(--border);
+    box-shadow: 0 14px 28px rgba(2,6,23,.07);
+    overflow:hidden;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: transform .8s var(--ease), opacity .8s var(--ease), box-shadow .25s var(--ease);
+  }
+  .row.is-in{
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .row:hover{
+    box-shadow: 0 22px 44px rgba(2,6,23,.12);
+  }
+  .row::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(320px 120px at 0% 0%, rgba(47,111,237,.18), transparent 60%),
+      radial-gradient(320px 120px at 100% 0%, rgba(124,58,237,.14), transparent 60%);
+    opacity: 0;
+    transition: opacity .35s var(--ease);
+    pointer-events:none;
+  }
+  .row:hover::before{ opacity: 1; }
+
+  .main{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+  }
+  .badge{
+    width:44px;height:44px;
+    border-radius: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(47,111,237,.10);
+    border: 1px solid rgba(47,111,237,.18);
+    box-shadow: 0 12px 22px rgba(2,6,23,.06);
+    flex: 0 0 auto;
+  }
+  .name{
+    min-width:0;
+  }
+  .name .top{
+    font-weight: 1000;
+    letter-spacing:-.01em;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .name .sub{
+    margin-top: 4px;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .money{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items:flex-start;
+  }
+  .money .lbl{
+    color: var(--muted);
+    font-weight: 900;
+    font-size: 11.5px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+  .money .val{
+    font-weight: 1000;
+    color: var(--text);
+  }
+
+  .profit{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items:flex-start;
+  }
+  .profit .val{
+    font-weight: 1000;
+    color: var(--text);
+  }
+  .profit .tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 1000;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.92);
+  }
+  .tag.good{
+    background: rgba(16,185,129,.10);
+    border-color: rgba(16,185,129,.18);
+    color: #065f46;
+  }
+  .tag.mid{
+    background: rgba(47,111,237,.10);
+    border-color: rgba(47,111,237,.18);
+    color: #1e3a8a;
+  }
+  .tag.bad{
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.18);
+    color: #7f1d1d;
+  }
+
+  .row-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .a{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 9px 12px;
+    border-radius: 14px;
+    text-decoration:none;
+    font-weight: 900;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.92);
+    color: var(--text);
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+    box-shadow: 0 12px 22px rgba(2,6,23,.06);
+  }
+  .a:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(2,6,23,.10);
+    border-color: rgba(47,111,237,.25);
+  }
+  .a.danger{
+    color: #7f1d1d;
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.18);
+  }
+  .a .ic{ width:16px;height:16px; display:inline-flex; align-items:center; justify-content:center; }
+
+  /* empty */
+  .empty{
+    text-align:center;
+    padding: 28px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.75);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 800;
+    box-shadow: 0 12px 26px rgba(2,6,23,.06);
+  }
+
+  @media (max-width: 980px){
+    .row{
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "main actions"
+        "cost potential"
+        "profit profit";
+    }
+    .main{ grid-area: main; }
+    .money.cost{ grid-area: cost; }
+    .money.potential{ grid-area: potential; }
+    .profit{ grid-area: profit; }
+    .row-actions{ grid-area: actions; justify-content:flex-end; }
+  }
+  @media (max-width: 560px){
+    .row{
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "main"
+        "cost"
+        "potential"
+        "profit"
+        "actions";
+    }
+    .row-actions{ justify-content:flex-start; }
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    .row{transition:none!important}
+  }
+</style>
+
+<div class="cars-wrap">
+  <div class="cars-head">
+    <div>
+      <h2 class="cars-title">Cars</h2>
+      <p class="cars-sub">Manage your vehicle inventory, costs, and potential profit at a glance.</p>
+    </div>
+
+    <div class="cars-actions">
+      <a class="btn primary" href="{% url 'dealership:car_add' %}">
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+        </span>
+        Add car
+      </a>
+      <span class="chip" id="carsCount">— cars</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search">
+      <span aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M21 21l-4.3-4.3"></path>
+        </svg>
+      </span>
+      <input id="carSearch" type="text" placeholder="Search by manufacturer, model, or year..." autocomplete="off">
+      <span class="hint" id="searchHint">Ctrl / ⌘ + K</span>
+    </div>
+
+    <div class="meta">
+      <span aria-hidden="true">💡</span>
+      Click <strong>Edit</strong> to update data, or <strong>Delete</strong> to remove a car.
+    </div>
+  </div>
+
+  <div class="list" id="carsList">
+    {% for c in object_list %}
+      <div class="row" data-row data-search="{{ c.manufacturer }} {{ c.model }} {{ c.year }}">
+        <div class="main">
+          <div class="badge" aria-hidden="true">🚘</div>
+          <div class="name">
+            <div class="top">{{ c.manufacturer }} {{ c.model }} ({{ c.year }})</div>
+            <div class="sub">ID: {{ c.id }}</div>
+          </div>
+        </div>
+
+        <div class="money cost">
+          <div class="lbl">Cost</div>
+          <div class="val" data-cost>{{ c.cost_price }}</div>
+        </div>
+
+        <div class="money potential">
+          <div class="lbl">Potential</div>
+          <div class="val" data-potential>{{ c.potential_sale_price }}</div>
+        </div>
+
+        <div class="profit">
+          <div class="lbl">Expected profit</div>
+          <div class="val" data-profit>—</div>
+          <span class="tag mid" data-tag>Calculating…</span>
+        </div>
+
+        <div class="row-actions">
+          <a class="a" href="{% url 'dealership:car_edit' c.id %}">
+            <span class="ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </span>
+            Edit
+          </a>
+
+          <a class="a danger" href="{% url 'dealership:car_delete' c.id %}">
+            <span class="ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
+            Delete
+          </a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No cars found. Click <strong>Add car</strong> to create your first entry.</div>
+    {% endfor %}
+  </div>
+
+  <div class="empty" id="noMatch" style="display:none; margin-top: 12px;">
+    No results match your search.
+  </div>
+</div>
+
+<script>
+(function(){
+  const rows = Array.from(document.querySelectorAll('[data-row]'));
+  const input = document.getElementById('carSearch');
+  const countEl = document.getElementById('carsCount');
+  const noMatch = document.getElementById('noMatch');
+  const hint = document.getElementById('searchHint');
+
+  // Animate rows in
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!prefersReduced){
+    rows.forEach((r, i) => setTimeout(()=> r.classList.add('is-in'), 60 + i*70));
+  } else {
+    rows.forEach(r => r.classList.add('is-in'));
+  }
+
+  // Count badge
+  countEl.textContent = `${rows.length} cars`;
+
+  // Ctrl/Cmd+K focus search
+  window.addEventListener('keydown', (e)=>{
+    const isK = (e.key || '').toLowerCase() === 'k';
+    if((e.ctrlKey || e.metaKey) && isK){
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  // Hide shortcut hint on touch devices
+  try{
+    if(window.matchMedia('(pointer: coarse)').matches){
+      hint.style.display = 'none';
+    }
+  } catch(_){}
+
+  // Helpers: parse money-ish values (works even if they come as strings)
+  function parseNumber(v){
+    if(v == null) return 0;
+    const s = String(v).replace(/[^0-9.,-]/g,'').replace(/,/g,'');
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function formatNumber(n){
+    try{
+      return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    } catch(_){
+      return String(Math.round(n*100)/100);
+    }
+  }
+
+  // Calculate profit tags per row (purely UI)
+  rows.forEach(r=>{
+    const costEl = r.querySelector('[data-cost]');
+    const potEl = r.querySelector('[data-potential]');
+    const profEl = r.querySelector('[data-profit]');
+    const tagEl = r.querySelector('[data-tag]');
+
+    const cost = parseNumber(costEl ? costEl.textContent : 0);
+    const pot = parseNumber(potEl ? potEl.textContent : 0);
+    const profit = pot - cost;
+
+    if(profEl) profEl.textContent = formatNumber(profit);
+
+    if(tagEl){
+      tagEl.classList.remove('good','mid','bad');
+      if(profit > 0){
+        tagEl.classList.add(profit >= (cost*0.25) ? 'good' : 'mid');
+        tagEl.textContent = profit >= (cost*0.25) ? 'Healthy margin' : 'Low margin';
+      } else if (profit === 0){
+        tagEl.classList.add('mid');
+        tagEl.textContent = 'Break-even';
+      } else {
+        tagEl.classList.add('bad');
+        tagEl.textContent = 'Below cost';
+      }
+    }
+  });
+
+  // Search filtering
+  function applyFilter(){
+    const q = (input.value || '').trim().toLowerCase();
+    let visible = 0;
+
+    rows.forEach(r=>{
+      const hay = (r.getAttribute('data-search') || '').toLowerCase();
+      const ok = !q || hay.includes(q);
+      r.style.display = ok ? '' : 'none';
+      if(ok) visible++;
+    });
+
+    countEl.textContent = `${visible} cars`;
+    noMatch.style.display = (rows.length > 0 && visible === 0) ? '' : 'none';
+  }
+
+  input && input.addEventListener('input', applyFilter);
+})();
+</script>
+
 {% endblock %}
