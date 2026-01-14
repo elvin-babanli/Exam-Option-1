@@ -1,9 +1,263 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Delete sale</h2>
-<p>Are you sure to delete: {{ object }}?</p>
-<form method="post">
-  {% csrf_token %}
-  <button type="submit">Yes, delete</button>
-</form>
+
+<style>
+  :root{
+    --text:#0f172a;
+    --muted:#475569;
+    --border:rgba(15,23,42,.10);
+
+    --danger:#ef4444;
+    --danger-dark:#b91c1c;
+    --primary:#2f6fed;
+
+    --shadow:0 18px 50px rgba(2,6,23,.12);
+    --shadow-soft:0 12px 30px rgba(2,6,23,.08);
+
+    --radius-xl:26px;
+    --radius-lg:18px;
+
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+
+  .del-wrap{
+    display:grid;
+    place-items:center;
+    padding: 6px 0;
+  }
+
+  .card{
+    width:min(760px, 100%);
+    background: rgba(255,255,255,.88);
+    border: 1px solid rgba(255,255,255,.65);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    transform: translateY(12px);
+    opacity: 0;
+    transition: transform .9s var(--ease), opacity .9s var(--ease);
+  }
+  .card.is-in{ transform:none; opacity:1; }
+
+  .head{
+    padding: 18px 18px 14px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    border-bottom: 1px solid rgba(15,23,42,.08);
+    background:
+      radial-gradient(700px 240px at 10% 0%, rgba(239,68,68,.14), transparent 60%),
+      radial-gradient(700px 240px at 100% 0%, rgba(47,111,237,.10), transparent 60%),
+      rgba(255,255,255,.72);
+    backdrop-filter: blur(10px);
+  }
+
+  .title{
+    margin:0;
+    font-size: 20px;
+    letter-spacing:-.02em;
+    font-weight: 1000;
+    color: var(--text);
+  }
+  .sub{
+    margin:6px 0 0;
+    color: var(--muted);
+    font-weight: 750;
+    font-size: 13.5px;
+    line-height: 1.5;
+    max-width: 70ch;
+  }
+
+  .warn{
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: #fff;
+    background: linear-gradient(180deg, var(--danger), var(--danger-dark));
+    box-shadow: 0 16px 36px rgba(239,68,68,.28);
+  }
+
+  .body{
+    padding: 18px;
+    display:grid;
+    gap: 12px;
+  }
+
+  .object{
+    border-radius: 18px;
+    padding: 14px 14px;
+    border: 1px solid rgba(239,68,68,.18);
+    background: rgba(239,68,68,.08);
+    color: #7f1d1d;
+    font-weight: 950;
+    box-shadow: 0 12px 22px rgba(2,6,23,.06);
+    word-break: break-word;
+  }
+
+  .note{
+    border-radius: 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.86);
+    color: var(--muted);
+    font-weight: 800;
+    line-height: 1.55;
+  }
+  .note strong{ color: var(--text); }
+
+  .safety{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top: 4px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--border);
+    font-weight: 850;
+    color: var(--text);
+  }
+  .safety input{
+    width: 18px; height: 18px;
+    accent-color: var(--danger);
+  }
+  .muted{
+    color: var(--muted);
+    font-weight: 750;
+  }
+
+  .actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(15,23,42,.08);
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 11px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.92);
+    color: var(--text);
+    font-weight: 900;
+    text-decoration:none;
+    box-shadow: 0 12px 26px rgba(2,6,23,.08);
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease), filter .25s var(--ease);
+    user-select:none;
+    cursor:pointer;
+  }
+  .btn:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px rgba(2,6,23,.12);
+    border-color: rgba(47,111,237,.22);
+  }
+  .btn:active{ transform: translateY(0) scale(.99); }
+
+  .btn.danger{
+    background: linear-gradient(180deg, var(--danger), var(--danger-dark));
+    border-color: rgba(255,255,255,.35);
+    color:#fff;
+  }
+  .btn.danger:hover{ filter: brightness(1.03); }
+
+  .btn .ic{ width:18px;height:18px; display:inline-flex; align-items:center; justify-content:center; }
+
+  @media (prefers-reduced-motion: reduce){
+    .card{ transition:none !important; transform:none !important; opacity:1 !important; }
+  }
+</style>
+
+<div class="del-wrap">
+  <section class="card" id="delCard">
+    <div class="head">
+      <div>
+        <h2 class="title">Delete sale</h2>
+        <p class="sub">
+          This action will permanently remove the selected sale record from the system.
+        </p>
+      </div>
+      <div class="warn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.3 3.7 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"></path>
+          <path d="M12 9v4"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="object">
+        Are you sure you want to delete:
+        <div style="margin-top:8px; font-weight:1000; color:#7f1d1d;">
+          {{ object }}
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Note:</strong> Deleting a sale may affect reporting totals (profit, revenue, and history).
+        Proceed only if this record is incorrect or duplicated.
+      </div>
+
+      <label class="safety">
+        <input type="checkbox" id="confirmCheck">
+        <span>I understand this cannot be undone.</span>
+        <span class="muted" style="margin-left:auto;">Required</span>
+      </label>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+          <a class="btn" href="{% url 'dealership:sale_list' %}">
+            <span class="ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"></path>
+              </svg>
+            </span>
+            Cancel
+          </a>
+
+          <button type="submit" class="btn danger" id="deleteBtn" disabled>
+            <span class="ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
+            Yes, delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const card = document.getElementById('delCard');
+  const check = document.getElementById('confirmCheck');
+  const btn = document.getElementById('deleteBtn');
+
+  requestAnimationFrame(()=> card.classList.add('is-in'));
+
+  function sync(){
+    btn.disabled = !check.checked;
+  }
+  check.addEventListener('change', sync);
+  sync();
+})();
+</script>
+
 {% endblock %}
