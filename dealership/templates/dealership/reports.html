@@ -552,6 +552,7 @@
     </div>
   </section>
 
+  
   <!-- SALES LIST -->
   <section class="section" id="salesSection">
     <div class="sec-head">
@@ -615,6 +616,7 @@
   const kpi3 = document.getElementById('kpi3');
   const salesSection = document.getElementById('salesSection');
 
+
   // Reveal animations
   requestAnimationFrame(()=>{
     filterCard.classList.add('is-in');
@@ -623,6 +625,7 @@
     setTimeout(()=> kpi3.classList.add('is-in'), 180);
     setTimeout(()=> salesSection.classList.add('is-in'), 240);
   });
+
 
   // Clear filters (client-side)
   const clearBtn = document.getElementById('clearBtn');
